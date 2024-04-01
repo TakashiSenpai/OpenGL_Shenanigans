@@ -50,37 +50,57 @@ main :: proc() {
     fmt.println("Vertex Shader success?", success)
 
     // fragment shader binding and compiling
-    fragmentShaderSource : cstring = "#version 460\nout vec4 FragColor;\nvoid main(){FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);}" 
-    fragmentShader : u32
-    fragmentShader = gl.CreateShader(gl.FRAGMENT_SHADER)
-    gl.ShaderSource(fragmentShader, 1, cast([^]cstring)&fragmentShaderSource, nil)
-    gl.CompileShader(fragmentShader)
-    gl.GetShaderiv(fragmentShader, gl.COMPILE_STATUS, &success)
+    fragmentShaderOrangeSource : cstring = "#version 460\nout vec4 FragColor;\nvoid main(){FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);}" 
+    fragmentShaderYellowSource : cstring = "#version 460\nout vec4 FragColor;\nvoid main(){FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);}" 
+    
+    fragmentShaderOrange, fragmentShaderYellow : u32
+    fragmentShaderOrange = gl.CreateShader(gl.FRAGMENT_SHADER)
+    fragmentShaderYellow = gl.CreateShader(gl.FRAGMENT_SHADER)
+    gl.ShaderSource(fragmentShaderOrange, 1, cast([^]cstring)&fragmentShaderOrangeSource, nil)
+    gl.CompileShader(fragmentShaderOrange)
+    gl.GetShaderiv(fragmentShaderOrange, gl.COMPILE_STATUS, &success)
+    fmt.println("Fragment Shader success?", success)
+    gl.ShaderSource(fragmentShaderYellow, 1, cast([^]cstring)&fragmentShaderYellowSource, nil)
+    gl.CompileShader(fragmentShaderYellow)
+    gl.GetShaderiv(fragmentShaderYellow, gl.COMPILE_STATUS, &success)
     fmt.println("Fragment Shader success?", success)
 
     // shader program
-    shaderProgram : u32
-    shaderProgram = gl.CreateProgram()
-    gl.AttachShader(shaderProgram, vertexShader)
-    gl.AttachShader(shaderProgram, fragmentShader)
-    gl.LinkProgram(shaderProgram)
-    gl.GetProgramiv(shaderProgram, gl.LINK_STATUS, &success)
+    shaderProgramOrange, shaderProgramYellow : u32
+    shaderProgramOrange = gl.CreateProgram()
+    gl.AttachShader(shaderProgramOrange, vertexShader)
+    gl.AttachShader(shaderProgramOrange, fragmentShaderOrange)
+    gl.LinkProgram(shaderProgramOrange)
+    gl.GetProgramiv(shaderProgramOrange, gl.LINK_STATUS, &success)
     fmt.println("Shader success?", success)
-    
+    shaderProgramYellow = gl.CreateProgram()
+    gl.AttachShader(shaderProgramYellow, vertexShader)
+    gl.AttachShader(shaderProgramYellow, fragmentShaderYellow)
+    gl.LinkProgram(shaderProgramYellow)
+    gl.GetProgramiv(shaderProgramYellow, gl.LINK_STATUS, &success)
+    fmt.println("Shader success?", success)
+
     gl.DeleteShader(vertexShader)
-    gl.DeleteShader(fragmentShader)
+    gl.DeleteShader(fragmentShaderOrange)
+    gl.DeleteShader(fragmentShaderYellow)
 
     // ======================= //
     // === OBJECTS TO DRAW === // 
     // ======================= //
 
-    /*
-    vertices := []f32{
-        -0.5, -0.5, 0.0,
-         0.5, -0.5, 0.0,
-         0.0,  0.5, 0.0,
+    
+    vertices1 := []f32{
+        0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+    }
+    vertices2 := []f32{
+         0.0,  0.0, 0.0,
+        -1.0,  0.0, 0.0,
+         0.0, -1.0, 0.0,
     } 
-    */
+    
+    /*
     vertices := []f32{
         -0.5, -0.5, 0.0,
          0.5, -0.5, 0.0,
@@ -92,30 +112,47 @@ main :: proc() {
         0, 1, 2,
         1, 2, 3,
     }
+    */
 
-    // Vertex Array Object
-    VAO : u32
-    gl.GenVertexArrays(1, &VAO)
-    gl.BindVertexArray(VAO)
-
-    // Vertex Buffer Object
-    VBO : u32
-    gl.GenBuffers(1, &VBO)
-    gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-    gl.BufferData(gl.ARRAY_BUFFER, size_of(f32) * len(vertices), raw_data(vertices), gl.STATIC_DRAW)
+    // Vertex Array Objects and Vertex Buffer Objects
+    VAOs, VBOs : [2]u32
+    gl.GenVertexArrays(2, cast([^]u32)&VAOs) // weird cast because odin arrays are not pointers
+    gl.GenBuffers     (2, cast([^]u32)&VBOs)
     
+    // first triangle
+    gl.BindVertexArray(VAOs[0])
+    gl.BindBuffer(gl.ARRAY_BUFFER, VBOs[0])
+    gl.BufferData(gl.ARRAY_BUFFER, len(vertices1) * size_of(f32), raw_data(vertices1), gl.STATIC_DRAW)
+    gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), 0)
+    gl.EnableVertexAttribArray(0)
+
+    // second triangle
+    gl.BindVertexArray(VAOs[1])
+    gl.BindBuffer(gl.ARRAY_BUFFER, VBOs[1])
+    gl.BufferData(gl.ARRAY_BUFFER, len(vertices2) * size_of(f32), raw_data(vertices2), gl.STATIC_DRAW)
+    gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), 0)
+    gl.EnableVertexAttribArray(0)
+
+    /*
     // Element Buffer Object
     EBO : u32
     gl.GenBuffers(1, &EBO)
     gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
     gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size_of(u32) * len(indices), raw_data(indices), gl.STATIC_DRAW)
 
+    // Element Buffer Object
+    EBO : u32
+    gl.GenBuffers(1, &EBO)
+    gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+    gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size_of(u32) * len(indices), raw_data(indices), gl.STATIC_DRAW)
+    
     gl.VertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * size_of(f32), 0)
     gl.EnableVertexAttribArray(0)
-
+    
     gl.BindBuffer(gl.ARRAY_BUFFER, 0)
     gl.BindVertexArray(0)
-    
+    */
+
     // ================= //
     // === RENDERING === //
     // ================= //
@@ -124,14 +161,16 @@ main :: proc() {
     for !glfw.WindowShouldClose(window) {
         
         // basic OpenGL action
-        gl.ClearColor(1.,1.,1.,0.5)    // set state
+        gl.ClearColor(0.2, 0.3, 0.3, 1.0)    // set state
         gl.Clear(gl.COLOR_BUFFER_BIT) // use state
         
-        gl.UseProgram(shaderProgram)
-        gl.BindVertexArray(VAO)
-        // gl.DrawArrays(gl.TRIANGLES, 0, 3)
-        
-        gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+        gl.UseProgram(shaderProgramOrange)
+        gl.BindVertexArray(VAOs[0])
+        gl.DrawArrays(gl.TRIANGLES, 0, 3)
+        gl.UseProgram(shaderProgramYellow)
+        gl.BindVertexArray(VAOs[1])
+        gl.DrawArrays(gl.TRIANGLES, 0, 3)
+        //gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
         glfw.SwapBuffers(window) // swap color buffer
         glfw.PollEvents()        // check for triggered events
@@ -142,10 +181,11 @@ main :: proc() {
     // =================== //
 
     // clean up OpenGL stuff
-    gl.DeleteVertexArrays(1, &VAO)
-    gl.DeleteBuffers(1, &VBO)
-    gl.DeleteBuffers(1, &EBO)
-    gl.DeleteProgram(shaderProgram)
+    gl.DeleteVertexArrays(2, cast([^]u32)&VAOs)
+    gl.DeleteBuffers     (2, cast([^]u32)&VBOs)
+    //gl.DeleteBuffers(1, &EBO)
+    gl.DeleteProgram(shaderProgramOrange)
+    gl.DeleteProgram(shaderProgramYellow)
 
     // close the window
     glfw.Terminate()
